@@ -52,8 +52,8 @@ class BaseDataHandler():
         '''
         Print the original DataFrame, either fully or just the first 5 rows.
         '''
-        row = self.og_df.shape[0] if full else 5
-        return self.og_df.head(row)
+        row = self.df.shape[0] if full else 5
+        return self.df.head(row)
     
     @staticmethod
     def static_get_pivot(self, values=None, index=None, columns=None, aggfunc:str="mean") -> pd.DataFrame:
