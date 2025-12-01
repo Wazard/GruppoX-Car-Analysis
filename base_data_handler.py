@@ -55,6 +55,13 @@ class BaseDataHandler():
         row = self.og_df.shape[0] if full else 5
         return self.og_df.head(row)
     
+    @staticmethod
+    def static_get_pivot(self, values=None, index=None, columns=None, aggfunc:str="mean") -> pd.DataFrame:
+        '''
+        Create a pivot table from the original DataFrame.
+        '''
+        return pd.pivot_table(self.og_df, values=values, index=index, columns=columns, aggfunc=aggfunc)
+    
     def get_pivot(self, values=None, index=None, columns=None, aggfunc:str="mean") -> pd.DataFrame:
         '''
         Create a pivot table from the original DataFrame.
@@ -126,6 +133,18 @@ class BaseDataHandler():
             return False, e
         return True, None
     
+    @staticmethod
+    def static_try_add_col(df:pd.DataFrame, target_col:str, criteria, axis:int=1) -> tuple[bool, any]:
+            '''
+            Add a new column to the working DataFrame based on a criteria function applied to each row or column.
+            '''
+            try:
+                df[target_col] = df.apply(criteria, axis=axis)
+            except Exception as e:
+                return False, e
+            return True, None
+    
+
     def try_add_col(self, target_col:str, criteria, axis:int=1) -> tuple[bool, any]:
         '''
         Add a new column to the working DataFrame based on a criteria function applied to each row or column.
@@ -253,7 +272,6 @@ class BaseDataHandler():
         except Exception as e:
             return False, e
 
-
     def detect_outliers_all(self, method: str = "iqr",
                             lower_percentile: float = 0.01,
                             upper_percentile: float = 0.99) -> pd.DataFrame:
@@ -266,6 +284,37 @@ class BaseDataHandler():
 
         for col in self.df.select_dtypes(include="number").columns:
             series = self.df[col]
+
+            if method == "zscore":
+                z_scores = (series - series.mean()) / series.std()
+                outlier_flags[col] = (z_scores.abs() > 3)
+
+            elif method == "percentile":
+                lower = series.quantile(lower_percentile)
+                upper = series.quantile(upper_percentile)
+                outlier_flags[col] = (series < lower) | (series > upper)
+
+            else:
+                if method != "iqr":
+                    warnings.warn("Unknown method. Defaulting to IQR.", UserWarning)
+                Q1, Q3 = series.quantile([0.25, 0.75])
+                IQR = Q3 - Q1
+                lower, upper = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
+                outlier_flags[col] = (series < lower) | (series > upper)
+
+        return outlier_flags
+    
+    @staticmethod
+    def static_detect_outliers_all(df, method: str = "iqr", lower_percentile: float = 0.01, upper_percentile: float = 0.99) -> pd.DataFrame:
+        """
+        Detect outliers for every numeric column in the DataFrame.
+        Supports 'iqr', 'zscore', and 'percentile' methods.
+        Returns a DataFrame with boolean flags for each column.
+        """
+        outlier_flags = pd.DataFrame(index=df.index)
+
+        for col in df.select_dtypes(include="number").columns:
+            series = df[col]
 
             if method == "zscore":
                 z_scores = (series - series.mean()) / series.std()
