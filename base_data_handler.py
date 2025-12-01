@@ -251,11 +251,13 @@ class BaseDataHandler():
         except Exception as e:
             return False, e
 
-    import pandas as pd
 
-    def detect_outliers_all(self, method: str = "iqr") -> pd.DataFrame:
+    def detect_outliers_all(self, method: str = "iqr",
+                            lower_percentile: float = 0.01,
+                            upper_percentile: float = 0.99) -> pd.DataFrame:
         """
         Detect outliers for every numeric column in the DataFrame.
+        Supports 'iqr', 'zscore', and 'percentile' methods.
         Returns a DataFrame with boolean flags for each column.
         """
         outlier_flags = pd.DataFrame(index=self.df.index)
@@ -265,15 +267,20 @@ class BaseDataHandler():
 
             if method == "zscore":
                 z_scores = (series - series.mean()) / series.std()
-                outlier_flags[col + "_is_outlier"] = (z_scores.abs() > 3)
+                outlier_flags[col] = (z_scores.abs() > 3)
+
+            elif method == "percentile":
+                lower = series.quantile(lower_percentile)
+                upper = series.quantile(upper_percentile)
+                outlier_flags[col] = (series < lower) | (series > upper)
 
             else:
                 if method != "iqr":
-                    warnings.warn("Defaulting to IQR method for outlier detection.", UserWarning)
+                    warnings.warn("Unknown method. Defaulting to IQR.", UserWarning)
                 Q1, Q3 = series.quantile([0.25, 0.75])
                 IQR = Q3 - Q1
                 lower, upper = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
-                outlier_flags[col + "_is_outlier"] = (series < lower) | (series > upper)
+                outlier_flags[col] = (series < lower) | (series > upper)
 
-        return outlier_flags    
+        return outlier_flags
     
