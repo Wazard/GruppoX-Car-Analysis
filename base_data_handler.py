@@ -197,16 +197,18 @@ class BaseDataHandler():
     def try_clean_string_to_number_col(self, col: str | list[str]) -> tuple[bool, any]:
         '''
         Clean a column containing string representations of numbers by extracting numeric values
-        and converting them to floats. Handles ranges, plus signs, decimals, and negatives.
+        and converting them to floats. Handles ranges, plus signs, decimals.
         '''
         def helper(s):
             s = str(s).replace(",", "")
-            # Match integers, decimals, and negatives
-            nums = re.findall(r"-?\d+(?:\.\d+)?", s)
+            # Match integers or decimals, ignore minus signs as separators
+            nums = re.findall(r"\d+(?:\.\d+)?", s)
             if nums:
                 nums = list(map(float, nums))
+                # If multiple numbers (range), take the mean
                 return float(np.mean(nums))
             return None
+
 
         try:
             if isinstance(col, str):
