@@ -17,7 +17,11 @@ class BaseDataHandler():
     
     @property
     def df(self) -> pd.DataFrame:
-        return self.__curr_df if not None else self.df
+        return self.__curr_df
+    
+    @df.setter
+    def df(self, df) -> None:
+        self.__curr_df = df
     
     def df_log(self, base:float='e') -> pd.DataFrame:
         numeric_cols = self.df.select_dtypes(include='number').columns
@@ -149,4 +153,31 @@ class BaseDataHandler():
             return False, e
         return True, None
     
+    def try_clean_column_names(self) -> tuple[bool, any]:
 
+        def to_snake(name: str) -> str:
+            # Lowercase
+            name = name.lower()
+            # Replace non-alphanumeric with underscore
+            name = re.sub(r'[^a-z0-9]+', '_', name)
+            # Remove leading/trailing underscores
+            name = name.strip('_')
+            return name
+        try:
+            self.__curr_df = self.df.rename(columns={col: to_snake(col) for col in self.df.columns})
+        except Exception as e:
+            return False, e
+        return True, self.df
+    
+    def try_rename_col(self, col: str | list[str], name: str | list[str]) -> tuple[bool, any]:
+
+        try:
+            # Ensure both are lists for mapping
+            if isinstance(col, str) and isinstance(name, str):
+                mapping = {col: name}
+            elif isinstance(col, list) and isinstance(name, list):
+                mapping = dict(zip(col, name))
+            self.__curr_df = self.df.rename(columns=mapping)
+            return True, self.df
+        except Exception as e:
+            return False, e
