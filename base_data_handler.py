@@ -208,8 +208,6 @@ class BaseDataHandler():
                 # If multiple numbers (range), take the mean
                 return float(np.mean(nums))
             return None
-
-
         try:
             if isinstance(col, str):
                 self.__curr_df[col] = self.df[col].apply(helper)
