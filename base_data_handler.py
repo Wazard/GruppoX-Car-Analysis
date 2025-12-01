@@ -144,9 +144,12 @@ class BaseDataHandler():
     
     def try_clean_string_to_number_col(self, col:str|list[str]) -> tuple[bool, any]:
         def helper(s):
-            s = str(s).replace(",", "")  # remove commas
+            s = str(s).replace(",", "")
             nums = re.findall(r"\d+", s)
-            return max(map(int, nums)) if nums else None
+            if nums:
+                nums = list(map(int, nums))
+                return float(np.mean(nums))
+            return None
         try:
             self.__curr_df[col] = self.df[col].apply(helper)
         except Exception as e:
@@ -170,7 +173,6 @@ class BaseDataHandler():
         return True, self.df
     
     def try_rename_col(self, col: str | list[str], name: str | list[str]) -> tuple[bool, any]:
-
         try:
             # Ensure both are lists for mapping
             if isinstance(col, str) and isinstance(name, str):
